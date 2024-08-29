@@ -6,41 +6,26 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-let waitingUser = null;
-
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+    console.log('New client connected');
 
-  socket.on('find-partner', () => {
-    if (waitingUser) {
-      // Pair the current user with the waiting user
-      io.to(socket.id).emit('partner-found', { partnerId: waitingUser.id });
-      io.to(waitingUser.id).emit('partner-found', { partnerId: socket.id });
-      waitingUser = null; // Reset waitingUser
-    } else {
-      waitingUser = socket; // Set current user as the waiting user
-    }
-  });
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+    });
 
-  socket.on('offer', (data) => {
-    io.to(data.partnerId).emit('offer', data.offer);
-  });
+    socket.on('offer', (offer) => {
+        socket.broadcast.emit('offer', offer);
+    });
 
-  socket.on('answer', (data) => {
-    io.to(data.partnerId).emit('answer', data.answer);
-  });
+    socket.on('answer', (answer) => {
+        socket.broadcast.emit('answer', answer);
+    });
 
-  socket.on('ice-candidate', (data) => {
-    io.to(data.partnerId).emit('ice-candidate', data.candidate);
-  });
-
-  socket.on('disconnect', () => {
-    if (waitingUser === socket) {
-      waitingUser = null;
-    }
-  });
+    socket.on('candidate', (candidate) => {
+        socket.broadcast.emit('candidate', candidate);
+    });
 });
 
 server.listen(3000, () => {
-  console.log('Signaling server listening on port 3000');
+    console.log('Signaling server is running on port 3000');
 });
